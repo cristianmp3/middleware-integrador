@@ -1,7 +1,3 @@
-¡Claro que sí! Aquí tienes la información formateada en Markdown, lista para copiar y pegar directamente en tu archivo `README.md` de GitHub. He añadido iconografía, estructura jerárquica con encabezados, bloques de código en línea para los términos técnicos y listas para que sea mucho más fácil de leer.
-
----
-
 # 🤖 AI-Powered Order Integration Middleware
 
 > **Project:** Java Spring Boot & Google Gemini Integrator Middleware
