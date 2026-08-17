@@ -1,78 +1,65 @@
-# DOCUMENTACIÓN TÉCNICA: MIDDLEWARE DE INTEGRACIÓN DE PEDIDOS CON IA
-**Proyecto:** Middleware Integrador Java Spring Boot & Google Gemini  
-**Autor:** Cristian P. Martinez  
-**Fecha:** 30 de Enero, 2026  
-**Versión:** 1.0.0
+TECHNICAL DOCUMENTATION: AI-POWERED ORDER INTEGRATION MIDDLEWARE
+Project: Java Spring Boot & Google Gemini Integrator Middleware
+Author: Cristian P. Martinez
+Date: January 30, 2026
+Version: 1.0.0
 
----
+1. EXECUTIVE SUMMARY
+This project consists of a B2B Integration Middleware designed to automate the receipt, analysis, and persistence of business orders.
 
-## 1. RESUMEN EJECUTIVO
+Unlike a traditional CRUD, this system implements Real-Time Data Enrichment using Generative Artificial Intelligence (Google Gemini 1.5 Flash). The system not only saves data but also "understands" the context of the order, automatically classifying priority and generating technical descriptions without human intervention.
 
-Este proyecto consiste en un **Middleware de Integración B2B** diseñado para automatizar la recepción, análisis y persistencia de pedidos comerciales. 
+Business Value
+Decision Automation: Automatically detects VIP or high-volume orders.
+Reduction of Human Error: Standardizes product descriptions based on SKUs.
 
-A diferencia de un CRUD tradicional, este sistema implementa **Enriquecimiento de Datos en Tiempo Real** utilizando Inteligencia Artificial Generativa (Google Gemini 1.5 Flash). El sistema no solo guarda datos, sino que "entiende" el contexto del pedido, clasificando automáticamente la prioridad y generando descripciones técnicas sin intervención humana.
+Scalability: Microservices-based architecture (Spring Boot) ready for high demand.
 
-### Valor para el Negocio
-* **Automatización de Decisiones:** Detecta pedidos VIP o de alto volumen automáticamente.
-* **Reducción de Error Humano:** Estandariza las descripciones de productos basadas en SKUs.
-* **Escalabilidad:** Arquitectura basada en microservicios (Spring Boot) lista para alta demanda.
+2. TECHNOLOGY STACK
+Language: Java 17+ (LTS).
+Framework: Spring Boot 3.4.x (Modern standard for microservices).
+Database: MySQL 8.0 (Relational persistence).
+ORM: Hibernate / JPA (Data management without manual SQL).
+Artificial Intelligence: Google Gemini 1.5 Flash (via REST API).
+API Documentation: OpenAPI / Swagger UI.
+HTTP Client: Spring RestClient.
+Tools: Maven, Lombok, IntelliJ IDEA.
 
----
+3. SYSTEM ARCHITECTURE
+The system follows a Layered Architecture to ensure separation of responsibilities and maintainability.
 
-## 2. STACK TECNOLÓGICO
+Data Pipeline
+Input: The client sends a JSON request via HTTP POST.
+Controller: Validates the request structure.
+Service (Logic Layer):
+Calls the AI ​​adapter (IaService) to analyze the SKU.
+Receives the analysis (Priority + Description).
+Applies business rules (Alerts).
+Repository: Persists the enriched object in MySQL.
+Output: Returns the created object with ID and Timestamp.
 
-* **Lenguaje:** Java 17+ (LTS).
-* **Framework:** Spring Boot 3.4.x (Estándar moderno para microservicios).
-* **Base de Datos:** MySQL 8.0 (Persistencia relacional).
-* **ORM:** Hibernate / JPA (Manejo de datos sin SQL manual).
-* **Inteligencia Artificial:** Google Gemini 1.5 Flash (vía REST API).
-* **Documentación API:** OpenAPI / Swagger UI.
-* **Cliente HTTP:** Spring RestClient.
-* **Herramientas:** Maven, Lombok, IntelliJ IDEA.
+4. COMPONENT AND LOGIC DETAILS
+A. Data Model (Order.java)
+Represents the information structure. The @Entity annotation is used to map the class directly to an SQL table.
 
----
+sku: Unique identifier of the product.
+quantity: Critical variable for the business logic.
+descriptionIa: Long text field (LONGTEXT or VARCHAR(2000)) where the AI's generative response is stored.
+Auditing: Use of @PrePersist to automatically record the creation date.
 
-## 3. ARQUITECTURA DEL SISTEMA
+B. Artificial Intelligence Service (IaService.java)
+This component acts as an integration adapter. Its function is to communicate with the external Google API.
 
-El sistema sigue una **Arquitectura en Capas (Layered Architecture)** para garantizar la separación de responsabilidades y la mantenibilidad.
+Key Logic (Prompt Engineering): An empty request is not sent. A "System Prompt" (behavioral instruction) is injected into the call:
 
-### Flujo de Datos (Pipeline)
-1.  **Entrada:** El cliente envía un JSON vía HTTP POST.
-2.  **Controller:** Valida la estructura de la petición.
-3.  **Service (Capa Lógica):**
-    * Llama al adaptador de IA (`IaService`) para analizar el SKU.
-    * Recibe el análisis (Prioridad + Descripción).
-    * Aplica reglas de negocio (Alertas).
-4.  **Repository:** Persiste el objeto enriquecido en MySQL.
-5.  **Salida:** Retorna el objeto creado con ID y Timestamp.
+"If the quantity is > 50 or the product is premium, start your response with: [HIGH PRIORITY]. Otherwise, use: [STANDARD]."
 
----
+Technical Implementation:
 
-## 4. DETALLE DE COMPONENTES Y LÓGICA
+Use of RestClient to make secure HTTP calls.
+Manual handling of the nested JSON structure required by Gemini (contents -> parts -> text).
+URL configuration pointing to the gemini-1.5-flash model to optimize latency.
 
-### A. Modelo de Datos (`Pedido.java`)
-Representa la estructura de la información. Se utiliza la anotación `@Entity` para mapear la clase directamente a una tabla SQL.
+C. Business Service (PedidoService.java)
+The core of the application. It orchestrates the interaction between the AI ​​and the database.
 
-* **`sku`**: Identificador único del producto.
-* **`cantidad`**: Variable crítica para la lógica de negocio.
-* **`descripcionIa`**: Campo de texto largo (`LONGTEXT` o `VARCHAR(2000)`) donde se almacena la respuesta generativa de la IA.
-* **Auditoría**: Uso de `@PrePersist` para registrar automáticamente la fecha de creación.
-
-### B. Servicio de Inteligencia Artificial (`IaService.java`)
-Este componente actúa como un adaptador de integración. Su función es comunicarse con la API externa de Google.
-
-**Lógica Clave (Prompt Engineering):**
-No se envía una petición vacía. Se inyecta un "System Prompt" (instrucción de comportamiento) dentro de la llamada:
-> *"Si la cantidad es > 50 o el producto es de lujo, empieza tu respuesta con: [PRIORIDAD ALTA]. De lo contrario, usa: [ESTÁNDAR]."*
-
-**Implementación Técnica:**
-* Uso de `RestClient` para realizar llamadas HTTP seguras.
-* Manejo manual de la estructura JSON anidada requerida por Gemini (`contents` -> `parts` -> `text`).
-* Configuración de URL apuntando al modelo `gemini-1.5-flash` para optimizar latencia.
-
-### C. Servicio de Negocio (`PedidoService.java`)
-El núcleo de la aplicación. Orquesta la interacción entre la IA y la Base de Datos.
-
-**Lógica de "Programación Defensiva":**
-```java
-pedido.setId(null);
